@@ -1,0 +1,48 @@
+name: Notebook Deployment - Azure Databricks
+on:
+  workflow_call:
+    inputs:
+      databricks_code_path:
+        description: Databricks Service Path
+        type: string
+        required: true
+      
+      service_code_file:
+        description: python code file path
+        type: string
+        required: true
+    
+    secrets:
+      DATABRICKS_HOST_URL:
+        description:   'Databricks workspace URL'
+        required: true
+      DATABRICKS_TOKEN:
+        description: 'Access token for Databricks CLI'
+        required: true
+jobs:
+  push_to_db:
+    runs-on: ubuntu-latest
+    environment: Inventory_Databricks_QA_Env
+    
+    steps:
+      - name: Checkout GitHub Action
+        uses: actions/checkout@v3
+      
+      - name: Set up python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+
+      - name: Databricks CLI config
+        run: |
+            pip install databricks-cli 
+            cat > ~/.databrickscfg << EOF
+            [DEFAULT]
+            host = ${{ secrets.DATABRICKS_HOST_URL }} 
+            token = ${{ secrets.DATABRICKS_TOKEN }} 
+            jobs-api-version = 2.1 
+            EOF
+    
+      - name: Deploy code to databricks workspace
+        run: |
+            databricks workspace import_dir ${{ inputs.service_code_file }} ${{ inputs.databricks_code_path }} --overwrite
